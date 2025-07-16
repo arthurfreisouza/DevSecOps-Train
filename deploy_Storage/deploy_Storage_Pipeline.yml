@@ -6,7 +6,7 @@ trigger:
 parameters:
   - name: baseName
     type: string
-    default: 'arthurstorageacct'
+    default: 'arthur-account-'
   - name: location
     type: string
     default: 'northeurope'
