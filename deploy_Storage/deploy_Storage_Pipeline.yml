@@ -1,0 +1,36 @@
+trigger:
+  branches:
+    include:
+      - main  # or master
+
+parameters:
+  - name: baseName
+    type: string
+    default: 'arthurstorageacct'
+  - name: location
+    type: string
+    default: 'northeurope'
+  - name: resourceGroupName
+    type: string
+    default: 'arthur_tests'
+  - name: templateFile
+    type: string
+    default: 'deploy_Storage/storageDeploy.bicep'
+
+stages:
+- stage: DeployStorage
+  jobs:
+  - job: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'Arthur_Service_Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az deployment group create \
+            --resource-group ${{ parameters.resourceGroupName }} \
+            --template-file ${{ parameters.templateFile }} \
+            --parameters baseName='${{ parameters.baseName }}' location='${{ parameters.location }}' count=3
