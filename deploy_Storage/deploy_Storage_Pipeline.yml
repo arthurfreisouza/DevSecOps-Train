@@ -6,7 +6,7 @@ trigger:
 parameters:
   - name: baseName
     type: string
-    default: 'arthur-account-'
+    default: 'arthuraccountx'
   - name: location
     type: string
     default: 'northeurope'
@@ -30,6 +30,7 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
+          set -e  # Fail fast
           az deployment group create \
             --resource-group ${{ parameters.resourceGroupName }} \
             --template-file ${{ parameters.templateFile }} \
