@@ -1,0 +1,77 @@
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+stages:
+- stage: CheckFeedAndVersioning
+  displayName: 'Check Feed and Enable Versioning for All Storage Accounts'
+  jobs:
+  - job: CheckAndEnableVersioning
+    displayName: 'Check Feed and Enable Versioning'
+    steps:
+    - checkout: self
+    - task: CmdLine@2
+      displayName: 'Read pipeline variables from cf_versioning_contributor/parameters.json'
+      inputs:
+        script: |
+          echo "Reading parameters from cf_versioning_contributor/parameters.json..."
+          if ! command -v jq &> /dev/null; then
+            echo 'jq not found, installing...'
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
+          if [ ! -f cf_versioning_contributor/parameters.json ]; then
+            echo 'cf_versioning_contributor/parameters.json not found!'; exit 1;
+          fi
+          SUBSCRIPTION_ID=$(jq -r '.parameters.subscriptionId.value' cf_versioning_contributor/parameters.json)
+          RESOURCE_GROUP=$(jq -r '.parameters.resourceGroup.value' cf_versioning_contributor/parameters.json)
+          PRINCIPAL_ID=$(jq -r '.parameters.principalId.value' cf_versioning_contributor/parameters.json)
+          echo "SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
+          echo "RESOURCE_GROUP: $RESOURCE_GROUP"
+          echo "PRINCIPAL_ID: $PRINCIPAL_ID"
+          if [ -z "$SUBSCRIPTION_ID" ] || [ -z "$RESOURCE_GROUP" ] || [ -z "$PRINCIPAL_ID" ]; then
+            echo 'One or more required parameters are missing!'; exit 1;
+          fi
+          echo "##vso[task.setvariable variable=SUBSCRIPTION_ID]$SUBSCRIPTION_ID"
+          echo "##vso[task.setvariable variable=RESOURCE_GROUP]$RESOURCE_GROUP"
+          echo "##vso[task.setvariable variable=PRINCIPAL_ID]$PRINCIPAL_ID"
+    - task: AzureCLI@2
+      displayName: 'Enable Versioning, Assign Contributor Role, and Check Feed for All Storage Accounts'
+      inputs:
+        azureSubscription: 'Arthur_Service_Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e
+          echo "Using SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
+          echo "Using RESOURCE_GROUP: $RESOURCE_GROUP"
+          echo "Using PRINCIPAL_ID: $PRINCIPAL_ID"
+
+          # Validate subscription is visible to the context
+          if ! az account list --query "[?id=='$SUBSCRIPTION_ID']" | grep -q "$SUBSCRIPTION_ID"; then
+            echo "ERROR: Subscription $SUBSCRIPTION_ID not accessible in current login context."; exit 1;
+          fi
+
+          az account set --subscription "$SUBSCRIPTION_ID"
+
+          storage_accounts=$(az storage account list --resource-group "$RESOURCE_GROUP" --query "[].name" -o tsv)
+          for sa in $storage_accounts; do
+            echo "Enabling blob versioning for storage account: $sa"
+            az storage account blob-service-properties update --account-name "$sa" --enable-versioning true --enable-change-feed true
+
+            echo "Assigning Contributor role to principal for storage account: $sa"
+            az role assignment create \
+              --assignee "$PRINCIPAL_ID" \
+              --role "Contributor" \
+              --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Storage/storageAccounts/$sa"
+
+            echo "Listing containers in $sa..."
+            containers=$(az storage container list --account-name "$sa" --auth-mode login --query "[].name" -o tsv)
+            for c in $containers; do
+              echo "Listing blobs and versions in container: $c"
+              az storage blob list --account-name "$sa" --container-name "$c" --include v --auth-mode login
+            done
+          done
+      env:
+        SUBSCRIPTION_ID: $(SUBSCRIPTION_ID)
+        RESOURCE_GROUP: $(RESOURCE_GROUP)
+        PRINCIPAL_ID: $(PRINCIPAL_ID)

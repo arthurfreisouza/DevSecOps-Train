@@ -2,6 +2,9 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "subscriptionId": { "value": "9fd0207b-08b2-4e5f-a748-8de9264eaece" },
+    "resourceGroup": { "value": "arthur_tests" },
+    "principalId": { "value": "63a928cd-f93d-4021-9ab2-1d43aca41545" },
     "vmName": { "value": "bicepvm01" },
     "adminUsername": { "value": "azureuser" },
     "adminPassword": { "value": "ReplaceMeWithSecurePassword!" },
