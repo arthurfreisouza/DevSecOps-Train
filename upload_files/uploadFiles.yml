@@ -8,7 +8,7 @@ pool:
 parameters:
   - name: storageAccountName
     type: string
-    default: 'arthuraccount0  '  # Change to your storage account name
+    default: 'arthuraccount0'  # Change to your storage account name
     values:
       - 'arthuraccount0'
       - 'arthuraccount1'
@@ -19,7 +19,7 @@ parameters:
     default: 'mycontainer'       # Change to your blob container name
   - name: sourceFolder
     type: string
-    default: '$(System.DefaultWorkingDirectory)/deploy_Storage/upload_files/files/'
+    default: '$(System.DefaultWorkingDirectory)/upload_files/files/'
 
 steps:
 - checkout: self
