@@ -8,8 +8,7 @@
     "typeProperties": {
       "location": {
         "type": "AzureBlobStorageLocation",
-        "container": "mycontainer",
-        "fileName": "setup.py"
+        "container": "mycontainer"
       }
     }
   }
