@@ -1,0 +1,12 @@
+{
+  "name": "LinkedServiceSource",
+  "properties": {
+    "type": "AzureBlobStorage",
+    "typeProperties": {
+      "connectionString": {
+        "type": "SecureString",
+        "value": "DefaultEndpointsProtocol=https;AccountName=arthuraccount0;AccountKey=ben27Y3muXUPO7vM5Y6nZYN5Pr/U8Fkjdt6vmTRauoFdueUVZJZunNujgV+UGOVgF3mRCJnbqN1Y+AStE3Sm7g==;EndpointSuffix=core.windows.net"
+      }
+    }
+  }
+}
