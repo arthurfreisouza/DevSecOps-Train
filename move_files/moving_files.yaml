@@ -1,0 +1,117 @@
+trigger:
+- none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: dataFactoryName
+    type: string
+    default: 'arthur-adf'
+  - name: resourceGroupName
+    type: string
+    default: 'arthur_tests'
+  - name: location
+    type: string
+    default: 'northeurope'
+  - name: adfBicepFile
+    type: string
+    default: 'deploy_ADF/adfDeploy.bicep'
+  - name: sourceStorage
+    type: string
+    default: 'arthuraccount0'
+  - name: destStorage
+    type: string
+    default: 'arthuraccount1'
+  - name: containerName
+    type: string
+    default: 'mycontainer'
+
+steps:
+- checkout: self
+
+# STEP 1: Deploy ADF if it does not exist
+- task: AzureCLI@2
+  displayName: 'Check/Create Data Factory'
+  inputs:
+    azureSubscription: 'Arthur_Service_Connection'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      set -e
+      echo "Checking if Data Factory exists..."
+      exists=$(az datafactory factory show \
+        --name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --query 'name' -o tsv || true)
+      if [ -z "$exists" ]; then
+        echo "Creating Data Factory..."
+        az deployment group create \
+          --resource-group ${{ parameters.resourceGroupName }} \
+          --template-file ${{ parameters.adfBicepFile }} \
+          --parameters dataFactoryName=${{ parameters.dataFactoryName }} location=${{ parameters.location }}
+      else
+        echo "Data Factory already exists."
+      fi
+
+# STEP 2: Deploy ADF assets (Linked Services, Datasets, Pipeline)
+- task: AzureCLI@2
+  displayName: 'Deploy ADF Assets (Linked Services, Datasets, Pipeline)'
+  inputs:
+    azureSubscription: 'Arthur_Service_Connection'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      set -e
+
+      echo "Deploying Linked Services..."
+      PROPS_SOURCE=$(jq -c '.properties' move_files/adf_assets/ls_source.json)
+      az datafactory linked-service create \
+        --factory-name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --name LinkedServiceSource \
+        --properties "$PROPS_SOURCE"
+
+      PROPS_SINK=$(jq -c '.properties' move_files/adf_assets/ls_sink.json)
+      az datafactory linked-service create \
+        --factory-name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --name LinkedServiceSink \
+        --properties "$PROPS_SINK"
+
+      echo "Deploying Datasets..."
+      PROPS_DS_SOURCE=$(jq -c '.properties' move_files/adf_assets/ds_source.json)
+      az datafactory dataset create \
+        --factory-name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --name DatasetSource \
+        --properties "$PROPS_DS_SOURCE"
+
+      PROPS_DS_SINK=$(jq -c '.properties' move_files/adf_assets/ds_sink.json)
+      az datafactory dataset create \
+        --factory-name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --name DatasetSink \
+        --properties "$PROPS_DS_SINK"
+
+      echo "Deploying Copy Pipeline..."
+      PROPS_PIPELINE=$(jq -c '.' move_files/adf_assets/pipeline_copy.json)
+      az datafactory pipeline create \
+        --factory-name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --name pipeline_copy \
+        --pipeline "$PROPS_PIPELINE"
+
+# STEP 3: Trigger the pipeline
+- task: AzureCLI@2
+  displayName: 'Trigger ADF Pipeline'
+  inputs:
+    azureSubscription: 'Arthur_Service_Connection'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Running ADF pipeline..."
+      az datafactory pipeline create-run \
+        --factory-name ${{ parameters.dataFactoryName }} \
+        --resource-group ${{ parameters.resourceGroupName }} \
+        --name pipeline_copy

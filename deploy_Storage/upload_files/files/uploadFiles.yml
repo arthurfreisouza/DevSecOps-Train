@@ -1,0 +1,60 @@
+# Pipeline to upload all files in this directory to a specified Azure Blob Storage account and container
+trigger:
+- none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: storageAccountName
+    type: string
+    default: 'arthuraccount0  '  # Change to your storage account name
+    values:
+      - 'arthuraccount0'
+      - 'arthuraccount1'
+      - 'arthuraccount2'
+
+  - name: containerName
+    type: string
+    default: 'mycontainer'       # Change to your blob container name
+  - name: sourceFolder
+    type: string
+    default: '$(System.DefaultWorkingDirectory)/deploy_Storage/upload_files/files/'
+
+steps:
+- checkout: self
+
+- task: AzureCLI@2
+  displayName: 'Upload files to Azure Blob Storage'
+  inputs:
+    azureSubscription: 'Arthur_Service_Connection'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      set -e
+      echo "Uploading files from ${{ parameters.sourceFolder }} to storage account ${{ parameters.storageAccountName }}, container ${{ parameters.containerName }}"
+      # Check if the container exists
+      exists=$(az storage container exists \
+        --account-name ${{ parameters.storageAccountName }} \
+        --name ${{ parameters.containerName }} \
+        --auth-mode login \
+        --query 'exists' -o tsv)
+      if [ "$exists" != "true" ]; then
+        echo "Container ${{ parameters.containerName }} does not exist. Creating..."
+        az storage container create \
+          --account-name ${{ parameters.storageAccountName }} \
+          --name ${{ parameters.containerName }} \
+          --auth-mode login
+      else
+        echo "Container ${{ parameters.containerName }} already exists."
+      fi
+      for file in $(find ${{ parameters.sourceFolder }} -type f); do
+        echo "Uploading $file..."
+        az storage blob upload \
+          --account-name ${{ parameters.storageAccountName }} \
+          --container-name ${{ parameters.containerName }} \
+          --file "$file" \
+          --name "$(basename $file)" \
+          --auth-mode login
+      done
+

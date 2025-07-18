@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "CopyActivityBlob",
+        "type": "Copy",
+        "inputs": [
+          {
+            "referenceName": "DatasetSource",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "DatasetSink",
+            "type": "DatasetReference"
+          }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "BinarySource"
+          },
+          "sink": {
+            "type": "BinarySink"
+          }
+        }
+      }
+    ]
+  }
+}

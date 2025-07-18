@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "LinkedServiceSource",
+      "type": "LinkedServiceReference"
+    },
+    "type": "Binary",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobStorageLocation",
+        "container": "mycontainer",
+        "fileName": "setup.py"
+      }
+    }
+  }
+}

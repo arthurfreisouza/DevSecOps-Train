@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "LinkedServiceSink",
+      "type": "LinkedServiceReference"
+    },
+    "type": "Binary",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobStorageLocation",
+        "container": "mycontainer",
+        "fileName": "output.txt"
+      }
+    }
+  }
+}

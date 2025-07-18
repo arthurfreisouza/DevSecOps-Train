@@ -1,0 +1,12 @@
+{
+  "name": "LinkedServiceSink",
+  "properties": {
+    "type": "AzureBlobStorage",
+    "typeProperties": {
+      "connectionString": {
+        "type": "SecureString",
+        "value": "DefaultEndpointsProtocol=https;AccountName=arthuraccount1;AccountKey=K62yYHe3IgbxjHbgxpluzC4B3pZgPjG8VsL/LdeXMtbzt74qJoHu3zPGuHQDZEgWg/52VHbZKyPZ+AStvI5BVA==;EndpointSuffix=core.windows.net"
+      }
+    }
+  }
+}
